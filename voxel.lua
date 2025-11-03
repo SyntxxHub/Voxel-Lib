@@ -1,7 +1,11 @@
 
--- Voxel UI Library (injection-ready single-file)
--- Drop this into an executor as a string loader or save locally and run in an environment with game:GetService and Instance.new.
--- Features: Button, Label, Slider, Toggle, Dropdown, draggable window, RightControl toggle, safe parenting, Close()
+-- Voxel UI Library (injection-ready single-file) - FIXED for injectors
+-- Improvements:
+--  * Robust ScreenGui parenting (tries gethui(), PlayerGui, CoreGui)
+--  * Uses centered UDim2 positioning (no ViewportSize dependency)
+--  * ResetOnSpawn = false, Enabled set explicitly
+--  * Wrapped risky calls in pcall to avoid silent failures in injectors
+-- Place this into your executor as a string or load the file and run.
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -10,7 +14,6 @@ local CoreGui = game:GetService("CoreGui")
 local UIS = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
-local viewport = Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize or Vector2.new(1280, 720)
 local tweenInfo = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
 
 local Library = {}
@@ -28,33 +31,59 @@ end
 
 -- Tween helper (uses shared tweenInfo)
 function Library:tween(object, goal, callback)
-	local ok, err = pcall(function()
+	pcall(function()
 		local tween = TweenService:Create(object, tweenInfo, goal)
 		if callback then
 			tween.Completed:Connect(callback)
 		end
 		tween:Play()
 	end)
-	if not ok then
-		-- silent fail to avoid executor crashes
-	end
 end
 
--- Safe parent helper: prefer PlayerGui, fallback to CoreGui if allowed
-local function safeParent(gui)
-	local parent = nil
-	local success, err = pcall(function()
+-- Parenting helper for injector environments:
+-- tries gethui() (exploit-provided), then PlayerGui, then CoreGui (last resort)
+local function chooseParent(screenGui)
+	local candidates = {}
+
+	-- try gethui (common in many executors)
+	if type(gethui) == "function" then
+		pcall(function()
+			table.insert(candidates, gethui())
+		end)
+	end
+
+	-- try syn.get_parent or similar (some executors provide get_hidden_gui)
+	if type(get_hidden_gui) == "function" then
+		pcall(function()
+			table.insert(candidates, get_hidden_gui())
+		end)
+	end
+
+	-- try PlayerGui
+	pcall(function()
 		local plr = Players.LocalPlayer
 		if plr then
-			parent = plr:FindFirstChild("PlayerGui") or plr:WaitForChild("PlayerGui", 1)
+			local pg = plr:FindFirstChild("PlayerGui") or plr:WaitForChild("PlayerGui", 2)
+			if pg then table.insert(candidates, pg) end
 		end
 	end)
-	if parent and parent.Parent ~= nil then
-		pcall(function() gui.Parent = parent end)
-		return true
+
+	-- CoreGui fallback
+	table.insert(candidates, CoreGui)
+
+	for _, cand in ipairs(candidates) do
+		if cand and typeof(cand) == "Instance" then
+			local ok, err = pcall(function() screenGui.Parent = cand end)
+			if ok then
+				-- ensure it's enabled if ScreenGui supports it
+				pcall(function() screenGui.ResetOnSpawn = false end)
+				pcall(function() screenGui.Enabled = true end)
+				return true
+			end
+		end
 	end
-	-- fallback to CoreGui if possible (some games prevent it)
-	local ok = pcall(function() gui.Parent = CoreGui end)
+	-- last attempt: try parenting to PlayerGui without waiting
+	local ok, _ = pcall(function() screenGui.Parent = Players.LocalPlayer and Players.LocalPlayer:FindFirstChild("PlayerGui") end)
 	return ok
 end
 
@@ -76,23 +105,31 @@ function Library:Init(options)
 	GUI.ScreenGui.Name = "Library.VoxelUI"
 	GUI.ScreenGui.IgnoreGuiInset = true
 	GUI.ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	pcall(function() GUI.ScreenGui.ResetOnSpawn = false end)
+	pcall(function() GUI.ScreenGui.Enabled = true end)
 
-	local parentOk = safeParent(GUI.ScreenGui)
-	if not parentOk then
-		-- last resort: try PlayerGui again, may error; wrap pcall
-		pcall(function() GUI.ScreenGui.Parent = Players.LocalPlayer and Players.LocalPlayer:WaitForChild("PlayerGui") end)
+	-- robustly parent to a valid UI container for injectors
+	local ok = chooseParent(GUI.ScreenGui)
+	if not ok then
+		-- if still not parented, retry a couple times
+		for i = 1, 3 do
+			wait(0.1)
+			if chooseParent(GUI.ScreenGui) then break end
+		end
 	end
 
-	-- Main frame
-	GUI.Main = Instance.new("Frame", GUI.ScreenGui)
+	-- Main frame (centered)
+	GUI.Main = Instance.new("Frame")
 	GUI.Main.Name = "Main"
 	GUI.Main.Size = UDim2.new(0, 492, 0, 318)
-	GUI.Main.Position = UDim2.fromOffset((viewport.X/2) - (492 / 2), (viewport.Y/2) - (318 / 2))
+	-- center based positioning avoids viewport dependency
+	GUI.Main.Position = UDim2.new(0.5, -246, 0.5, -159)
 	GUI.Main.BackgroundColor3 = Color3.fromRGB(20, 23, 27)
 	GUI.Main.BorderSizePixel = 0
 	GUI.Main.ClipsDescendants = true
+	GUI.Main.Parent = GUI.ScreenGui
 
-	local ok = pcall(function() Instance.new("UICorner", GUI.Main).CornerRadius = UDim.new(0.02, 0) end)
+	pcall(function() Instance.new("UICorner", GUI.Main).CornerRadius = UDim.new(0.02, 0) end)
 
 	-- vertical separator / accent
 	GUI.Ignore = Instance.new("Frame", GUI.Main)
@@ -111,8 +148,7 @@ function Library:Init(options)
 	GUI.Title.Text = options.name
 	GUI.Title.TextColor3 = Color3.fromRGB(102, 119, 140)
 	GUI.Title.TextScaled = true
-	GUI.Title.Font = Enum.Font.SourceSans -- fallback; your font is optional
-	-- preserve text scaling constraint
+	GUI.Title.Font = Enum.Font.SourceSans -- safe fallback
 	pcall(function()
 		local txtConstraint = Instance.new("UITextSizeConstraint", GUI.Title)
 		txtConstraint.MaxTextSize = 50
@@ -167,7 +203,6 @@ function Library:Init(options)
 				dragStart = input.Position
 				startPos = GUI.Main.Position
 
-				-- capture movement while dragging
 				input.Changed:Connect(function()
 					if input.UserInputState == Enum.UserInputState.End then
 						dragging = false
@@ -180,8 +215,7 @@ function Library:Init(options)
 			if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
 				local delta = input.Position - dragStart
 				local newPos = startPos + UDim2.new(0, delta.X, 0, delta.Y)
-				-- clamp so window isn't lost offscreen (basic clamp)
-				local screenSize = Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize or viewport
+				local screenSize = Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize or Vector2.new(1280,720)
 				local x = math.clamp(newPos.X.Offset, 0, screenSize.X - GUI.Main.AbsoluteSize.X)
 				local y = math.clamp(newPos.Y.Offset, 0, screenSize.Y - GUI.Main.AbsoluteSize.Y)
 				GUI.Main.Position = UDim2.fromOffset(x, y)
@@ -189,29 +223,26 @@ function Library:Init(options)
 		end)
 	end
 
-	-- Close function: destroys GUI and disconnects tracked connections
+	-- Close function: destroys GUI safely
 	function GUI:Close()
-		-- destroy top-level ScreenGui safely
 		pcall(function()
 			if self.ScreenGui and self.ScreenGui.Parent then
 				self.ScreenGui:Destroy()
 			end
 		end)
-		-- mark not visible
 		self._visible = false
 	end
 
-	-- Toggle visibility (used by keybind)
+	-- Toggle visibility (for keybind)
 	function GUI:ToggleVisibility()
 		if not self.ScreenGui then return end
 		self._visible = not self._visible
 		pcall(function() self.ScreenGui.Enabled = self._visible end)
-		-- fallback if Enabled not supported
+		-- fallback: set parent to nil to hide
 		if not pcall(function() return self.ScreenGui.Enabled end) then
 			if self._visible then
 				pcall(function() self.ScreenGui.Parent = Players.LocalPlayer:FindFirstChild("PlayerGui") or CoreGui end)
 			else
-				-- move to nil
 				pcall(function() self.ScreenGui.Parent = nil end)
 			end
 		end
@@ -266,7 +297,6 @@ function Library:Init(options)
 		local hoverColor = Color3.fromRGB(49, 56, 67)
 		local activeColor = Color3.fromRGB(58, 66, 79)
 
-		-- overlay for visual background
 		local btnOverlay = Instance.new("Frame", Tab.Button)
 		btnOverlay.Size = UDim2.new(1,0,1,0)
 		btnOverlay.BackgroundColor3 = defaultColor
@@ -889,6 +919,10 @@ function Library:Init(options)
 
 			-- create option labels inside optFrame
 			local function buildOptions()
+				-- clear previous textual children
+				for _,c in ipairs(optFrame:GetChildren()) do
+					if c:IsA("TextLabel") then c:Destroy() end
+				end
 				for i, v in ipairs(options.options) do
 					local t = Instance.new("TextLabel", optFrame)
 					t.Size = UDim2.new(1,0,0,28)
@@ -935,9 +969,6 @@ function Library:Init(options)
 			end
 			function DropObj:SetOptions(tbl)
 				-- clear existing
-				for _, c in pairs(optFrame:GetChildren()) do
-					if c:IsA("TextLabel") then c:Destroy() end
-				end
 				options.options = tbl or {}
 				optFrame.Size = UDim2.new(0.999,0,0,#options.options * 28)
 				buildOptions()
@@ -957,7 +988,7 @@ function Library:Init(options)
 		return Tab
 	end
 
-	-- Keybind: RightControl toggles UI visibility
+	-- Keybind: RightControl toggles UI visibility (works in injectors)
 	pcall(function()
 		UIS.InputBegan:Connect(function(input, gp)
 			if gp then return end
