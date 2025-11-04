@@ -4,6 +4,9 @@ local RunService = game:GetService("RunService")
 local coreGui = game:GetService("CoreGui")
 local UIS = game:GetService("UserInputService")
 
+local LocalPlayer = players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
 local viewport = workspace.CurrentCamera.ViewportSize
 local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
 
@@ -426,10 +429,10 @@ function Library:Init(options)
 				Label["30"] = Instance.new("Frame", Tab["1a"]);
 				Label["30"]["BorderSizePixel"] = 0;
 				Label["30"]["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
-				Label["30"]["Size"] = UDim2.new(0.95565, 0, 0, 50); -- Start with pixel height
+				Label["30"]["Size"] = UDim2.new(0.95565, 0, 0, 50);
 				Label["30"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
 				Label["30"]["Name"] = [[Info]];
-				Label["30"]["AutomaticSize"] = Enum.AutomaticSize.Y; -- ENABLE AUTOMATIC SIZING
+				Label["30"]["AutomaticSize"] = Enum.AutomaticSize.Y;
 
 				-- StarterGui.VoxelUI.Main.Frames.MainFrames.Info.UIGradient
 				Label["31"] = Instance.new("UIGradient", Label["30"]);
@@ -489,8 +492,8 @@ function Library:Init(options)
 				Label["36"]["FontFace"] = Font.new([[rbxasset://fonts/families/SourceSansPro.json]], Enum.FontWeight.Regular, Enum.FontStyle.Italic);
 				Label["36"]["TextColor3"] = Color3.fromRGB(102, 119, 140);
 				Label["36"]["BackgroundTransparency"] = 1;
-				Label["36"]["Size"] = UDim2.new(1, 0, 0, 0); -- Width 100%, height auto
-				Label["36"]["AutomaticSize"] = Enum.AutomaticSize.Y; -- ENABLE AUTO HEIGHT
+				Label["36"]["Size"] = UDim2.new(1, 0, 0, 0);
+				Label["36"]["AutomaticSize"] = Enum.AutomaticSize.Y;
 				Label["36"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
 				Label["36"]["Text"] = options.description;
 				Label["36"]["Name"] = [[Description]];
@@ -508,9 +511,442 @@ function Library:Init(options)
 
 			return Label
 		end
+		
+		function Tab:Slider(options)
+			options = Library:validate({
+				title = "Slider",
+				min = 0,
+				max = 100,
+				default = 50,
+				callback = function(v) print(v) end
+			}, options or {})
 
+			local Slider = {
+				MouseDown = false,
+				Hover = false,
+				Connection = nil
+			}
+			
+			do
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.Slider
+				Slider["38"] = Instance.new("Frame", Tab["1a"]);
+				Slider["38"]["BorderSizePixel"] = 0;
+				Slider["38"]["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+				Slider["38"]["Size"] = UDim2.new(0.95565, 0, 0.15804, 0);
+				Slider["38"]["Position"] = UDim2.new(0.01848, 0, 0.16645, 0);
+				Slider["38"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+				Slider["38"]["Name"] = [[Slider]];
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.Slider.UIGradient
+				Slider["39"] = Instance.new("UIGradient", Slider["38"]);
+				Slider["39"]["Rotation"] = 25;
+				Slider["39"]["Color"] = ColorSequence.new{ColorSequenceKeypoint.new(0.000, Color3.fromRGB(29, 33, 39)),ColorSequenceKeypoint.new(0.500, Color3.fromRGB(35, 40, 48)),ColorSequenceKeypoint.new(1.000, Color3.fromRGB(29, 33, 39))};
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.Slider.UICorner
+				Slider["3a"] = Instance.new("UICorner", Slider["38"]);
+				Slider["3a"]["CornerRadius"] = UDim.new(0.1, 0);
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.Slider.UIStroke
+				Slider["3b"] = Instance.new("UIStroke", Slider["38"]);
+				Slider["3b"]["ApplyStrokeMode"] = Enum.ApplyStrokeMode.Border;
+				Slider["3b"]["Color"] = Color3.fromRGB(70, 80, 95);
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.Slider.Name
+				Slider["3c"] = Instance.new("TextLabel", Slider["38"]);
+				Slider["3c"]["TextWrapped"] = true;
+				Slider["3c"]["BorderSizePixel"] = 0;
+				Slider["3c"]["TextSize"] = 14;
+				Slider["3c"]["TextXAlignment"] = Enum.TextXAlignment.Left;
+				Slider["3c"]["TextYAlignment"] = Enum.TextYAlignment.Bottom;
+				Slider["3c"]["TextScaled"] = true;
+				Slider["3c"]["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+				Slider["3c"]["FontFace"] = Font.new([[rbxasset://fonts/families/SourceSansPro.json]], Enum.FontWeight.Regular, Enum.FontStyle.Italic);
+				Slider["3c"]["TextColor3"] = Color3.fromRGB(102, 119, 140);
+				Slider["3c"]["BackgroundTransparency"] = 1;
+				Slider["3c"]["Size"] = UDim2.new(0.42096, 0, 0.41232, 0);
+				Slider["3c"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+				Slider["3c"]["Text"] = options.title;
+				Slider["3c"]["Name"] = [[Name]];
+				Slider["3c"]["Position"] = UDim2.new(0.025, 0, 0.035, 0);
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.Slider.Name.UITextSizeConstraint
+				Slider["3d"] = Instance.new("UITextSizeConstraint", Slider["3c"]);
+				Slider["3d"]["MaxTextSize"] = 50;
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.Slider.SliderBack
+				Slider["3e"] = Instance.new("Frame", Slider["38"]);
+				Slider["3e"]["BorderSizePixel"] = 0;
+				Slider["3e"]["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+				Slider["3e"]["Size"] = UDim2.new(0.95565, 0, 0.16575, 0);
+				Slider["3e"]["Position"] = UDim2.new(0.024, 0, 0.69767, 0);
+				Slider["3e"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+				Slider["3e"]["Name"] = [[SliderBack]];
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.Slider.SliderBack.UIGradient
+				Slider["3f"] = Instance.new("UIGradient", Slider["3e"]);
+				Slider["3f"]["Rotation"] = 25;
+				Slider["3f"]["Color"] = ColorSequence.new{ColorSequenceKeypoint.new(0.000, Color3.fromRGB(29, 33, 39)),ColorSequenceKeypoint.new(0.500, Color3.fromRGB(35, 40, 48)),ColorSequenceKeypoint.new(1.000, Color3.fromRGB(29, 33, 39))};
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.Slider.SliderBack.UICorner
+				Slider["40"] = Instance.new("UICorner", Slider["3e"]);
+				Slider["40"]["CornerRadius"] = UDim.new(0.5, 0);
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.Slider.SliderBack.UIStroke
+				Slider["41"] = Instance.new("UIStroke", Slider["3e"]);
+				Slider["41"]["ApplyStrokeMode"] = Enum.ApplyStrokeMode.Border;
+				Slider["41"]["Color"] = Color3.fromRGB(70, 80, 95);
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.Slider.SliderBack.FillDraggable
+				Slider["42"] = Instance.new("Frame", Slider["3e"]);
+				Slider["42"]["BorderSizePixel"] = 0;
+				Slider["42"]["BackgroundColor3"] = Color3.fromRGB(70, 80, 95);
+				Slider["42"]["Size"] = UDim2.new(0.70519, 0, 1, 0);
+				Slider["42"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+				Slider["42"]["Name"] = [[FillDraggable]];
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.Slider.SliderBack.FillDraggable.UICorner
+				Slider["43"] = Instance.new("UICorner", Slider["42"]);
+				Slider["43"]["CornerRadius"] = UDim.new(0.5, 0);
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.Slider.Value
+				Slider["45"] = Instance.new("TextLabel", Slider["38"]);
+				Slider["45"]["TextWrapped"] = true;
+				Slider["45"]["BorderSizePixel"] = 0;
+				Slider["45"]["TextSize"] = 14;
+				Slider["45"]["TextXAlignment"] = Enum.TextXAlignment.Right;
+				Slider["45"]["TextYAlignment"] = Enum.TextYAlignment.Bottom;
+				Slider["45"]["TextScaled"] = true;
+				Slider["45"]["BackgroundColor3"] = Color3.fromRGB(70, 80, 95);
+				Slider["45"]["FontFace"] = Font.new([[rbxasset://fonts/families/SourceSansPro.json]], Enum.FontWeight.Bold, Enum.FontStyle.Italic);
+				Slider["45"]["TextColor3"] = Color3.fromRGB(102, 119, 140);
+				Slider["45"]["BackgroundTransparency"] = 1;
+				Slider["45"]["Size"] = UDim2.new(0.16686, 0, 0.41232, 0);
+				Slider["45"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+				Slider["45"]["Text"] = tostring(options.default);
+				Slider["45"]["Name"] = [[Value]];
+				Slider["45"]["Position"] = UDim2.new(0.81216, 0, 0.035, 0);
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.Slider.Value.UITextSizeConstraint
+				Slider["46"] = Instance.new("UITextSizeConstraint", Slider["45"]);
+				Slider["46"]["MaxTextSize"] = 50;
+			end
+			
+			function Slider:SetValue(v)
+				local percentage
+				local value
+
+				if v == nil then
+					percentage = math.clamp((Mouse.X - Slider["38"].AbsolutePosition.X) / (Slider["38"].AbsoluteSize.X), 0, 1)
+					value = math.floor(((options.max - options.min) * percentage) + options.min)
+				else
+					value = math.clamp(v, options.min, options.max)
+					percentage = (value - options.min) / (options.max - options.min)
+				end
+
+				Slider["45"].Text = tostring(value)
+
+				local tweenInfo = TweenInfo.new(
+					0.2, -- duration
+					Enum.EasingStyle.Quad,
+					Enum.EasingDirection.Out
+				)
+				local tween = tweenService:Create(Slider["42"], tweenInfo, {Size = UDim2.fromScale(percentage, 1)})
+				tween:Play()
+
+				if not Slider.IsLocked then
+					options.callback(value)
+				end
+			end
+
+			do
+				Slider["38"].MouseEnter:Connect(function()
+					if Slider.IsLocked then return end
+					Slider.Hover = true
+					Library:tween(Slider["3b"], {Color = Color3.fromRGB(97, 110, 131)})
+					Library:tween(Slider["41"], {Color = Color3.fromRGB(97, 110, 131)})
+					Library:tween(Slider["42"], {BackgroundColor3 = Color3.fromRGB(97, 110, 131)})
+					Library:tween(Slider["3c"], {TextColor3 = Color3.fromRGB(97, 110, 131)})
+				end)
+
+				Slider["38"].MouseLeave:Connect(function()
+					if Slider.IsLocked then return end
+					Slider.Hover = false
+					if not Slider.MouseDown then
+						Library:tween(Slider["3b"], {Color = Color3.fromRGB(70, 80, 95)})
+						Library:tween(Slider["41"], {Color = Color3.fromRGB(70, 80, 95)})
+						Library:tween(Slider["42"], {BackgroundColor3 = Color3.fromRGB(70, 80, 95)})
+						Library:tween(Slider["3c"], {TextColor3 = Color3.fromRGB(101, 118, 139)})
+					end
+				end)
+
+				UIS.InputBegan:Connect(function(input, gpe)
+					if gpe or Slider.IsLocked then return end
+					if input.UserInputType == Enum.UserInputType.MouseButton1 and Slider.Hover then
+						Slider.MouseDown = true
+						Library:tween(Slider["3b"], {Color = Color3.fromRGB(55, 65, 80)})
+						Library:tween(Slider["41"], {Color = Color3.fromRGB(55, 65, 80)})
+						Library:tween(Slider["42"], {BackgroundColor3 = Color3.fromRGB(55, 65, 80)})
+						Library:tween(Slider["3c"], {TextColor3 = Color3.fromRGB(55, 65, 80)})
+
+						if not Slider.Connection then
+							Slider.Connection = RunService.RenderStepped:Connect(function()
+								Slider:SetValue(nil)
+							end)
+						end
+					end
+				end)
+
+				UIS.InputEnded:Connect(function(input, gpe)
+					if gpe then return end
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+						Slider.MouseDown = false
+						if Slider.Hover then
+							Library:tween(Slider["3b"], {Color = Color3.fromRGB(97, 110, 131)})
+							Library:tween(Slider["41"], {Color = Color3.fromRGB(97, 110, 131)})
+							Library:tween(Slider["42"], {BackgroundColor3 = Color3.fromRGB(97, 110, 131)})
+							Library:tween(Slider["3c"], {TextColor3 = Color3.fromRGB(97, 110, 131)})
+						else
+							Library:tween(Slider["3b"], {Color = Color3.fromRGB(70, 80, 95)})
+							Library:tween(Slider["41"], {Color = Color3.fromRGB(70, 80, 95)})
+							Library:tween(Slider["42"], {BackgroundColor3 = Color3.fromRGB(70, 80, 95)})
+							Library:tween(Slider["3c"], {TextColor3 = Color3.fromRGB(101, 118, 139)})
+						end
+
+						if Slider.Connection then
+							Slider.Connection:Disconnect()
+							Slider.Connection = nil
+						end
+					end
+				end)
+			end
+
+			return Slider
+		end
+		
+		function Tab:Toggle(options)
+			options = Library:validate({
+				title = "Toggle",
+				callback = function() end
+				
+			}, options or {})
+			
+
+			local Toggle = {
+				Hover = false,
+				MouseDown = false,
+				State = false
+			}
+			
+			do
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.ToggleInactive
+				Toggle["57"] = Instance.new("Frame", Tab["1a"]);
+				Toggle["57"]["BorderSizePixel"] = 0;
+				Toggle["57"]["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+				Toggle["57"]["ClipsDescendants"] = true;
+				Toggle["57"]["Size"] = UDim2.new(0.95565, 0, 0.09505, 0);
+				Toggle["57"]["Position"] = UDim2.new(0.02218, 0, 0.19404, 0);
+				Toggle["57"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+				Toggle["57"]["Name"] = [[ToggleInactive]];
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.ToggleInactive.UIGradient
+				Toggle["58"] = Instance.new("UIGradient", Toggle["57"]);
+				Toggle["58"]["Rotation"] = 25;
+				Toggle["58"]["Color"] = ColorSequence.new{ColorSequenceKeypoint.new(0.000, Color3.fromRGB(29, 33, 39)),ColorSequenceKeypoint.new(0.500, Color3.fromRGB(35, 40, 48)),ColorSequenceKeypoint.new(1.000, Color3.fromRGB(29, 33, 39))};
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.ToggleInactive.UICorner
+				Toggle["59"] = Instance.new("UICorner", Toggle["57"]);
+				Toggle["59"]["CornerRadius"] = UDim.new(0.1, 0);
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.ToggleInactive.UIStroke
+				Toggle["5a"] = Instance.new("UIStroke", Toggle["57"]);
+				Toggle["5a"]["ApplyStrokeMode"] = Enum.ApplyStrokeMode.Border;
+				Toggle["5a"]["Color"] = Color3.fromRGB(70, 80, 95);
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.ToggleInactive.Name
+				Toggle["5b"] = Instance.new("TextLabel", Toggle["57"]);
+				Toggle["5b"]["TextWrapped"] = true;
+				Toggle["5b"]["BorderSizePixel"] = 0;
+				Toggle["5b"]["TextSize"] = 14;
+				Toggle["5b"]["TextXAlignment"] = Enum.TextXAlignment.Left;
+				Toggle["5b"]["TextYAlignment"] = Enum.TextYAlignment.Bottom;
+				Toggle["5b"]["TextScaled"] = true;
+				Toggle["5b"]["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+				Toggle["5b"]["FontFace"] = Font.new([[rbxasset://fonts/families/SourceSansPro.json]], Enum.FontWeight.Regular, Enum.FontStyle.Italic);
+				Toggle["5b"]["TextColor3"] = Color3.fromRGB(102, 119, 140);
+				Toggle["5b"]["BackgroundTransparency"] = 1;
+				Toggle["5b"]["Size"] = UDim2.new(0.42078, 0, 0.67237, 0);
+				Toggle["5b"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+				Toggle["5b"]["Text"] = options.title;
+				Toggle["5b"]["Name"] = [[Name]];
+				Toggle["5b"]["Position"] = UDim2.new(0.02491, 0, 0.11865, 0);
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.ToggleInactive.Name.UITextSizeConstraint
+				Toggle["5c"] = Instance.new("UITextSizeConstraint", Toggle["5b"]);
+				Toggle["5c"]["MaxTextSize"] = 50;
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.ToggleInactive.Checkbox
+				Toggle["5d"] = Instance.new("Frame", Toggle["57"]);
+				Toggle["5d"]["BorderSizePixel"] = 0;
+				Toggle["5d"]["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+				Toggle["5d"]["Size"] = UDim2.new(0.03876, 0, 0.55371, 0);
+				Toggle["5d"]["Position"] = UDim2.new(0.93845, 0, 0.23, 0);
+				Toggle["5d"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+				Toggle["5d"]["Name"] = [[Checkbox]];
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.ToggleInactive.Checkbox.UICorner
+				Toggle["5e"] = Instance.new("UICorner", Toggle["5d"]);
+				Toggle["5e"]["CornerRadius"] = UDim.new(0.1, 0);
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.ToggleInactive.Checkbox.UIGradient
+				Toggle["5f"] = Instance.new("UIGradient", Toggle["5d"]);
+				Toggle["5f"]["Rotation"] = 25;
+				Toggle["5f"]["Color"] = ColorSequence.new{ColorSequenceKeypoint.new(0.000, Color3.fromRGB(29, 33, 39)),ColorSequenceKeypoint.new(0.500, Color3.fromRGB(35, 40, 48)),ColorSequenceKeypoint.new(1.000, Color3.fromRGB(29, 33, 39))};
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.ToggleInactive.Checkbox.UIStroke
+				Toggle["60"] = Instance.new("UIStroke", Toggle["5d"]);
+				Toggle["60"]["ApplyStrokeMode"] = Enum.ApplyStrokeMode.Border;
+				Toggle["60"]["Color"] = Color3.fromRGB(70, 80, 95);
+				
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.ToggleActive.Checkbox.Fill
+				Toggle["53"] = Instance.new("Frame", Toggle["5d"]);
+				Toggle["53"]["BorderSizePixel"] = 0;
+				Toggle["53"]["BackgroundColor3"] = Color3.fromRGB(70, 80, 95);
+				Toggle["53"]["BackgroundTransparency"] = 1;
+				Toggle["53"]["Size"] = UDim2.new(1, 0, 1, 0);
+				Toggle["53"]["Position"] = UDim2.new(0.00987, 0, 0.008, 0);
+				Toggle["53"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+				Toggle["53"]["Name"] = [[Fill]];
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.ToggleActive.Checkbox.Fill.UICorner
+				Toggle["54"] = Instance.new("UICorner", Toggle["53"]);
+				Toggle["54"]["CornerRadius"] = UDim.new(0.1, 0);
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.ToggleActive.Checkbox.Fill.UIStroke
+				Toggle["55"] = Instance.new("UIStroke", Toggle["53"]);
+				Toggle["55"]["ApplyStrokeMode"] = Enum.ApplyStrokeMode.Border;
+				Toggle["55"]["Color"] = Color3.fromRGB(70, 80, 95);
+
+
+				-- StarterGui.VoxelUI.Main.Frames.MainFrames.ToggleActive.Checkbox.Fill.Image
+				Toggle["56"] = Instance.new("ImageLabel", Toggle["53"]);
+				Toggle["56"]["BorderSizePixel"] = 0;
+				Toggle["56"]["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+				Toggle["56"]["AnchorPoint"] = Vector2.new(0.5, 0.5);
+				Toggle["56"]["Image"] = [[rbxassetid://107176071390364]];
+				Toggle["56"]["Size"] = UDim2.new(1, 0, 1, 0);
+				Toggle["56"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+				Toggle["56"]["BackgroundTransparency"] = 1;
+				Toggle["56"]["ImageTransparency"] = 1;
+				Toggle["56"]["Name"] = [[Image]];
+				Toggle["56"]["Position"] = UDim2.new(0.5, 0, 0.5, 0);
+
+			end
+			
+			do
+				function Toggle:Toggle(b)
+					if b == nil then
+						Toggle.State = not Toggle.State
+					else
+						Toggle.State = b
+					end
+
+					if Toggle.State then
+						-- When toggled ON: show checkmark and color the fill
+						Library:tween(Toggle["53"], {BackgroundColor3 = Color3.fromRGB(69, 79, 94)})
+						Library:tween(Toggle["53"], {BackgroundTransparency = 0})
+						Library:tween(Toggle["55"], {Color = Color3.fromRGB(69, 79, 94)})
+						Library:tween(Toggle["56"], {ImageTransparency = 0})
+					else
+						-- When toggled OFF: hide checkmark and reset fill color
+						Library:tween(Toggle["53"], {BackgroundColor3 = Color3.fromRGB(29, 33, 39)})
+						Library:tween(Toggle["53"], {BackgroundTransparency = 1})
+						Library:tween(Toggle["55"], {Color = Color3.fromRGB(70, 80, 95)})
+						Library:tween(Toggle["56"], {ImageTransparency = 1})
+					end
+
+					options.callback(Toggle.State)
+				end
+			end
+			
+			do
+				Toggle["57"].MouseEnter:Connect(function()
+					Toggle.Hover = true
+					Library:tween(Toggle["5a"], {Color = Color3.fromRGB(97, 110, 131)})
+					Library:tween(Toggle["5b"], {TextColor3 = Color3.fromRGB(97, 110, 131)})
+					Library:tween(Toggle["60"], {Color = Color3.fromRGB(97, 110, 131)})
+				end)
+
+				-- Hover leave
+				Toggle["57"].MouseLeave:Connect(function()
+					Toggle.Hover = false
+					if not Toggle.MouseDown then
+						Library:tween(Toggle["5a"], {Color = Color3.fromRGB(70, 80, 95)})
+						Library:tween(Toggle["5b"], {TextColor3 = Color3.fromRGB(140, 155, 175)})
+						Library:tween(Toggle["60"], {Color = Color3.fromRGB(70, 80, 95)})
+					end
+				end)
+
+				-- Mouse down (pressed)
+				UIS.InputBegan:Connect(function(input, gpe)
+					if gpe then return end
+					if input.UserInputType == Enum.UserInputType.MouseButton1 and Toggle.Hover then
+						Toggle.MouseDown = true
+						Library:tween(Toggle["5a"], {Color = Color3.fromRGB(55, 65, 80)})
+						Library:tween(Toggle["5b"], {TextColor3 = Color3.fromRGB(120, 135, 155)})
+						Library:tween(Toggle["60"], {Color = Color3.fromRGB(55, 65, 80)})
+						Toggle:Toggle()
+					end
+				end)
+
+				-- Mouse release (click)
+				UIS.InputEnded:Connect(function(input, gpe)
+					if gpe then return end
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+						Toggle.MouseDown = false
+						if Toggle.Hover then
+							Library:tween(Toggle["5a"], {Color = Color3.fromRGB(70, 80, 95)})
+							Library:tween(Toggle["5b"], {TextColor3 = Color3.fromRGB(70, 80, 95)})
+							Library:tween(Toggle["60"], {Color = Color3.fromRGB(70, 80, 95)})
+						else
+							Library:tween(Toggle["5a"], {Color = Color3.fromRGB(55, 65, 80)})
+							Library:tween(Toggle["5b"], {TextColor3 = Color3.fromRGB(55, 65, 80)})
+							Library:tween(Toggle["60"], {Color = Color3.fromRGB(55, 65, 80)})
+						end
+					end
+				end)
+			end
+			
+			return Toggle
+
+		end
+		
 		return Tab
 	end
 	
 	return GUI
 end
+
+return Library
