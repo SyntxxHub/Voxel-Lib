@@ -140,9 +140,7 @@ function Library:Init(options)
 
 		local function update(input)
 			local delta = input.Position - dragStart
-			Library:tween(GUI["2"], {
-				Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-			})
+			GUI["2"].Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 		end
 
 		GUI["2"].InputBegan:Connect(function(input)
@@ -1028,10 +1026,11 @@ function Library:Init(options)
 				Dropdown["1b"] = Instance.new("Frame", Tab["1a"]);
 				Dropdown["1b"]["BorderSizePixel"] = 0;
 				Dropdown["1b"]["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
-				Dropdown["1b"]["ClipsDescendants"] = true;
+				Dropdown["1b"]["ClipsDescendants"] = false;
 				Dropdown["1b"]["Size"] = UDim2.new(0.95565, 0, 0.09684, 0);
 				Dropdown["1b"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
 				Dropdown["1b"]["Name"] = [[Dropdown]];
+				Dropdown["1b"]["ZIndex"] = 2;
 
 				-- Gradient
 				Dropdown["1c"] = Instance.new("UIGradient", Dropdown["1b"]);
@@ -1067,6 +1066,7 @@ function Library:Init(options)
 				Dropdown["1f"]["Text"] = options.name;
 				Dropdown["1f"]["Name"] = [[Name]];
 				Dropdown["1f"]["Position"] = UDim2.new(0.02491, 0, 0.11646, 0);
+				Dropdown["1f"]["ZIndex"] = 3;
 
 				Dropdown["20"] = Instance.new("UITextSizeConstraint", Dropdown["1f"]);
 				Dropdown["20"]["MaxTextSize"] = 50;
@@ -1076,16 +1076,17 @@ function Library:Init(options)
 				Dropdown["21"]["BorderSizePixel"] = 0;
 				Dropdown["21"]["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
 				Dropdown["21"]["Size"] = UDim2.new(0.99935, 0, 0, 0);
-				Dropdown["21"]["Position"] = UDim2.new(0, 0, 1.08699, 0);
+				Dropdown["21"]["Position"] = UDim2.new(0, 0, 1, 5);
 				Dropdown["21"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
 				Dropdown["21"]["Name"] = [[Options]];
 				Dropdown["21"]["BackgroundTransparency"] = 1;
 				Dropdown["21"]["Visible"] = false;
+				Dropdown["21"]["ZIndex"] = 5;
 
 				-- UIListLayout for options
 				Dropdown["26"] = Instance.new("UIListLayout", Dropdown["21"]);
 				Dropdown["26"]["HorizontalAlignment"] = Enum.HorizontalAlignment.Center;
-				Dropdown["26"]["Padding"] = UDim.new(0.1, 0);
+				Dropdown["26"]["Padding"] = UDim.new(0, 3);
 				Dropdown["26"]["SortOrder"] = Enum.SortOrder.LayoutOrder;
 
 				-- Dropdown Icon
@@ -1100,6 +1101,8 @@ function Library:Init(options)
 				Dropdown["2f"]["Name"] = [[Icon]];
 				Dropdown["2f"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
 				Dropdown["2f"]["Position"] = UDim2.new(0.957, 0, 0.5, 0);
+				Dropdown["2f"]["Rotation"] = 0;
+				Dropdown["2f"]["ZIndex"] = 3;
 			end
 
 			-- Create option buttons
@@ -1109,7 +1112,7 @@ function Library:Init(options)
 				OptionButton["btn"] = Instance.new("TextButton", Dropdown["21"]);
 				OptionButton["btn"]["TextWrapped"] = true;
 				OptionButton["btn"]["BorderSizePixel"] = 0;
-				OptionButton["btn"]["TextSize"] = 17;
+				OptionButton["btn"]["TextSize"] = 14;
 				OptionButton["btn"]["TextScaled"] = true;
 				OptionButton["btn"]["BackgroundColor3"] = Color3.fromRGB(20, 23, 27);
 				OptionButton["btn"]["FontFace"] = Font.new([[rbxasset://fonts/families/SourceSansPro.json]], Enum.FontWeight.Regular, Enum.FontStyle.Italic);
@@ -1119,6 +1122,7 @@ function Library:Init(options)
 				OptionButton["btn"]["Text"] = option;
 				OptionButton["btn"]["Name"] = option;
 				OptionButton["btn"]["AutoButtonColor"] = false;
+				OptionButton["btn"]["ZIndex"] = 6;
 
 				local btnCorner = Instance.new("UICorner", OptionButton["btn"]);
 				btnCorner["CornerRadius"] = UDim.new(0.1, 0);
@@ -1188,18 +1192,14 @@ function Library:Init(options)
 			function Dropdown:Open()
 				if Dropdown.Open then return end
 				Dropdown.Open = true
-				Dropdown["21"].Visible = true
 				
 				local optionCount = #options.options
 				local optionHeight = 25
-				local spacing = optionHeight * 0.1
+				local spacing = 3
 				local totalHeight = (optionHeight * optionCount) + (spacing * (optionCount - 1))
 				
 				Dropdown["21"]["Size"] = UDim2.new(0.99935, 0, 0, totalHeight)
-				
-				Library:tween(Dropdown["1b"], {
-					Size = UDim2.new(0.95565, 0, 0, Dropdown["1b"].AbsoluteSize.Y + totalHeight + 10)
-				})
+				Dropdown["21"].Visible = true
 				
 				Library:tween(Dropdown["2f"], {Rotation = 180})
 			end
@@ -1208,11 +1208,7 @@ function Library:Init(options)
 				if not Dropdown.Open then return end
 				Dropdown.Open = false
 				
-				Library:tween(Dropdown["1b"], {
-					Size = UDim2.new(0.95565, 0, 0.09684, 0)
-				}, function()
-					Dropdown["21"].Visible = false
-				end)
+				Dropdown["21"].Visible = false
 				
 				Library:tween(Dropdown["2f"], {Rotation = 0})
 			end
