@@ -1,4 +1,4 @@
-# Voxel-Lib
+# VOXEL UI LIBRARY
 
 ## 🔽 Installation
 Load Voxel through the Github Release:
