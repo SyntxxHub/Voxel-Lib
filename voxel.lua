@@ -35,7 +35,8 @@ function Library:Init(options)
 	}, options or {})
 	
 	local GUI = {
-		CurrentTab = nil
+		CurrentTab = nil,
+		OpenDropdowns = {}
 	}
 	
 	-- Main
@@ -92,6 +93,61 @@ function Library:Init(options)
 		GUI["f"]["MaxTextSize"] = 50;
 	end
 	
+	-- Draggable
+	-- Draggable
+	do
+		local dragging = false  -- Keep this
+		local dragInput
+		local dragStart
+		local startPos
+
+		local function update(input)
+			-- Remove the ignoreDrag check, we'll handle it differently
+			local delta = input.Position - dragStart
+			GUI["2"].Position = UDim2.new(
+				startPos.X.Scale,
+				startPos.X.Offset + delta.X,
+				startPos.Y.Scale,
+				startPos.Y.Offset + delta.Y
+			)
+		end
+
+		GUI["2"].InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 and not dragging then  -- Add check
+				dragging = true
+				dragStart = input.Position
+				startPos = GUI["2"].Position
+
+				input.Changed:Connect(function()
+					if input.UserInputState == Enum.UserInputState.End then
+						dragging = false
+					end
+				end)
+			end
+		end)
+
+		GUI["2"].InputChanged:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseMovement then
+				dragInput = input
+			end
+		end)
+
+		UIS.InputChanged:Connect(function(input)
+			if input == dragInput and dragging then
+				update(input)
+			end
+		end)
+
+		-- ADD THIS: Make dragging accessible to other parts
+		function GUI:IsDragging()
+			return dragging
+		end
+
+		function GUI:StopDragging()
+			dragging = false
+		end
+	end
+
 	-- Tabs
 	do
 		-- StarterGui.Library.VoxelUI.Main.Tabs
@@ -127,6 +183,8 @@ function Library:Init(options)
 
 		-- StarterGui.Library.VoxelUI.Main.Tabs.Buttons.UIListLayout
 		GUI["7"] = Instance.new("UIListLayout", GUI["6"]);
+		GUI["7"]["HorizontalAlignment"] = Enum.HorizontalAlignment.Center;
+		GUI["7"]["Padding"] = UDim.new(0.02, 0);
 		GUI["7"]["SortOrder"] = Enum.SortOrder.LayoutOrder;
 	end
 	
@@ -137,8 +195,11 @@ function Library:Init(options)
 
 		local Tab = {
 			Hover = false,
-			Active = false
+			Active = false,
+			Dropdowns = {}
 		}
+		
+		Tab["j"] = Instance.new("UIListLayout", GUI["6"]);
 
 		Tab["a"] = Instance.new("TextButton", GUI["6"])
 		Tab["a"].TextWrapped = true
@@ -150,7 +211,7 @@ function Library:Init(options)
 		Tab["a"].BackgroundTransparency = 1
 		Tab["a"].AutoButtonColor = false
 		Tab["a"].FontFace = Font.new([[rbxassetid://12187375422]], Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-		Tab["a"].Size = UDim2.new(1, 0, 0.10976, 0)
+		Tab["a"].Size = UDim2.new(0.90909, 0, 0.11, 0)
 		Tab["a"].BorderColor3 = Color3.fromRGB(0, 0, 0)
 		Tab["a"].Text = ""
 		Tab["a"].Name = options.name
@@ -166,6 +227,17 @@ function Library:Init(options)
 		Tab["b"].Position = UDim2.new(0, 0, 0.25, 0)
 		Tab["b"].Text = options.name
 		
+		-- StarterGui.VoxelUI.Main.Tabs.Buttons.Button_Pressed.UICorner
+		Tab["g"] = Instance.new("UICorner", Tab["a"]);
+		Tab["g"]["CornerRadius"] = UDim.new(0.1, 0);
+
+
+		-- StarterGui.VoxelUI.Main.Tabs.Buttons.Button_Pressed.UIStroke
+		Tab["h"] = Instance.new("UIStroke", Tab["a"]);
+		Tab["h"]["ApplyStrokeMode"] = Enum.ApplyStrokeMode.Border;
+		Tab["h"]["Thickness"] = 0;
+		Tab["h"]["Color"] = Color3.fromRGB(70, 80, 95);
+
 		-- StarterGui.Library.VoxelUI.Main.Frames
 		Tab["10"] = Instance.new("Frame", GUI["2"]);
 		Tab["10"]["BorderSizePixel"] = 0;
@@ -173,8 +245,9 @@ function Library:Init(options)
 		Tab["10"]["Size"] = UDim2.new(0.76944, 0, 1, 0);
 		Tab["10"]["Position"] = UDim2.new(0.23056, 0, 0, 0);
 		Tab["10"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
-		Tab["10"]["Name"] = [[Frames]];
+		Tab["10"]["Name"] = "Frames_" .. options.name;
 		Tab["10"]["BackgroundTransparency"] = 1;
+		Tab["10"]["Visible"] = false;
 		
 		-- StarterGui.VoxelUI.Main.Frames.MainFrames
 		Tab["1a"] = Instance.new("Frame", Tab["10"]);
@@ -208,6 +281,9 @@ function Library:Init(options)
 					BackgroundTransparency = 0,
 					BackgroundColor3 = hoverColor
 				})
+				Library:tween(Tab["h"], {
+					Thickness = 1.5
+				})
 			end
 		end)
 
@@ -216,6 +292,9 @@ function Library:Init(options)
 				Library:tween(Tab["a"], {
 					BackgroundTransparency = 1,
 					BackgroundColor3 = defaultColor
+				})
+				Library:tween(Tab["h"], {
+					Thickness = 0
 				})
 			end
 		end)
@@ -231,12 +310,22 @@ function Library:Init(options)
 		end)
 
 		-- Activation
+		-- Activation
 		function Tab:Activate()
 			Tab.Active = true
+
+			-- Close all open dropdowns
+			for i = #GUI.OpenDropdowns, 1, -1 do
+				local dropdown = GUI.OpenDropdowns[i]
+				if dropdown and dropdown.Open then
+					dropdown:Toggle()
+				end
+			end
+
 			GUI.CurrentTab = Tab
 
 			for _, child in pairs(GUI["2"]:GetChildren()) do
-				if child:IsA("Frame") and child.Name == "Frames" then
+				if child:IsA("Frame") and child.Name:match("^Frames_") then
 					child.Visible = false
 				end
 			end
@@ -244,27 +333,74 @@ function Library:Init(options)
 			Tab["10"].Visible = true
 			Tab["1a"].Visible = true
 
+			for _, descendant in pairs(Tab["1a"]:GetDescendants()) do
+				if descendant:IsA("TextLabel") or descendant:IsA("TextButton") then
+					descendant.TextTransparency = 1
+				end
+				if descendant:IsA("ImageLabel") and descendant.Name ~= "Image" then
+					descendant.ImageTransparency = 1
+				end
+				if descendant:IsA("UIStroke") then
+					descendant.Transparency = 1
+				end
+			end
+
+			-- Fade in
+			task.wait(0.05)
+			for _, descendant in pairs(Tab["1a"]:GetDescendants()) do
+				if descendant:IsA("TextLabel") or descendant:IsA("TextButton") then
+					Library:tween(descendant, {TextTransparency = 0})
+				end
+				if descendant:IsA("ImageLabel") and descendant.Name ~= "Image" then
+					Library:tween(descendant, {ImageTransparency = 0})
+				end
+				if descendant:IsA("UIStroke") then
+					Library:tween(descendant, {Transparency = 0})
+				end
+			end
+
 			Library:tween(Tab["a"], {
 				BackgroundTransparency = 0.3,
 				BackgroundColor3 = activeColor
+			})
+			Library:tween(Tab["h"], {
+				Thickness = 1.5
 			})
 		end
 
 		function Tab:Deactivate()
 			Tab.Active = false
+
+			for _, descendant in pairs(Tab["1a"]:GetDescendants()) do
+				if descendant:IsA("TextLabel") or descendant:IsA("TextButton") then
+					Library:tween(descendant, {TextTransparency = 1})
+				end
+				if descendant:IsA("ImageLabel") and descendant.Name ~= "Image" then
+					Library:tween(descendant, {ImageTransparency = 1})
+				end
+				if descendant:IsA("UIStroke") then
+					Library:tween(descendant, {Transparency = 1})
+				end
+			end
+
+			task.wait(0.2) -- Wait for fade out to complete
 			Tab["10"].Visible = false
 			Tab["1a"].Visible = false
+
 			Library:tween(Tab["a"], {
 				BackgroundTransparency = 1,
 				BackgroundColor3 = defaultColor
 			})
+			Library:tween(Tab["h"], {
+				Thickness = 0
+			})
 		end
-
 
 		-- Make first tab active automatically
 		if GUI.CurrentTab == nil then
 			Tab:Activate()
 		end
+
 		
 		function Tab:Button(options)
 			options = Library:validate({
@@ -694,6 +830,7 @@ function Library:Init(options)
 				UIS.InputBegan:Connect(function(input, gpe)
 					if gpe or Slider.IsLocked then return end
 					if input.UserInputType == Enum.UserInputType.MouseButton1 and Slider.Hover then
+						GUI:StopDragging()
 						Slider.MouseDown = true
 						Library:tween(Slider["3b"], {Color = Color3.fromRGB(55, 65, 80)})
 						Library:tween(Slider["41"], {Color = Color3.fromRGB(55, 65, 80)})
@@ -904,7 +1041,7 @@ function Library:Init(options)
 					Toggle.Hover = false
 					if not Toggle.MouseDown then
 						Library:tween(Toggle["5a"], {Color = Color3.fromRGB(70, 80, 95)})
-						Library:tween(Toggle["5b"], {TextColor3 = Color3.fromRGB(140, 155, 175)})
+						Library:tween(Toggle["5b"], {TextColor3 = Color3.fromRGB(101, 118, 139)})
 						Library:tween(Toggle["60"], {Color = Color3.fromRGB(70, 80, 95)})
 					end
 				end)
@@ -915,7 +1052,7 @@ function Library:Init(options)
 					if input.UserInputType == Enum.UserInputType.MouseButton1 and Toggle.Hover then
 						Toggle.MouseDown = true
 						Library:tween(Toggle["5a"], {Color = Color3.fromRGB(55, 65, 80)})
-						Library:tween(Toggle["5b"], {TextColor3 = Color3.fromRGB(120, 135, 155)})
+						Library:tween(Toggle["5b"], {TextColor3 = Color3.fromRGB(55, 65, 80)})
 						Library:tween(Toggle["60"], {Color = Color3.fromRGB(55, 65, 80)})
 						Toggle:Toggle()
 					end
@@ -927,21 +1064,317 @@ function Library:Init(options)
 					if input.UserInputType == Enum.UserInputType.MouseButton1 then
 						Toggle.MouseDown = false
 						if Toggle.Hover then
-							Library:tween(Toggle["5a"], {Color = Color3.fromRGB(70, 80, 95)})
-							Library:tween(Toggle["5b"], {TextColor3 = Color3.fromRGB(70, 80, 95)})
-							Library:tween(Toggle["60"], {Color = Color3.fromRGB(70, 80, 95)})
+							Library:tween(Toggle["5a"], {Color = Color3.fromRGB(97, 110, 131)})
+							Library:tween(Toggle["5b"], {TextColor3 = Color3.fromRGB(97, 110, 131)})
+							Library:tween(Toggle["60"], {Color = Color3.fromRGB(97, 110, 131)})
 						else
-							Library:tween(Toggle["5a"], {Color = Color3.fromRGB(55, 65, 80)})
-							Library:tween(Toggle["5b"], {TextColor3 = Color3.fromRGB(55, 65, 80)})
-							Library:tween(Toggle["60"], {Color = Color3.fromRGB(55, 65, 80)})
+							Library:tween(Toggle["5a"], {Color = Color3.fromRGB(70, 80, 95)})
+							Library:tween(Toggle["5b"], {TextColor3 = Color3.fromRGB(101, 118, 139)})
+							Library:tween(Toggle["60"], {Color = Color3.fromRGB(70, 80, 95)})
 						end
 					end
 				end)
 			end
 			
 			return Toggle
-			
+		end
+		
+		function Tab:Dropdown(options)
+			options = Library:validate({
+				title = "Dropdown",
+				options = {"Option 1", "Option 2", "Option 3"},
+				default = "Option 1",
+				callback = function(v) print(v) end
+			}, options or {})
 
+			local Dropdown = {
+				Hover = false,
+				MouseDown = false,
+				Open = false,
+				Selected = options.default
+			}
+			
+			table.insert(GUI.OpenDropdowns, Dropdown)
+
+			do
+				-- Main dropdown frame (now a button)
+				Dropdown["1b"] = Instance.new("TextButton", Tab["1a"]);
+				Dropdown["1b"]["BorderSizePixel"] = 0;
+				Dropdown["1b"]["BackgroundColor3"] = Color3.fromRGB(29, 33, 39);
+				Dropdown["1b"]["ClipsDescendants"] = false;
+				Dropdown["1b"]["Size"] = UDim2.new(0.95565, 0, 0.09505, 0);
+				Dropdown["1b"]["Position"] = UDim2.new(0.02218, 0, 0.19404, 0);
+				Dropdown["1b"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+				Dropdown["1b"]["Name"] = [[Dropdown]];
+				Dropdown["1b"]["ZIndex"] = 10;
+				Dropdown["1b"]["Text"] = "";
+				Dropdown["1b"]["AutoButtonColor"] = false;
+
+				-- UIGradient
+				Dropdown["1c"] = Instance.new("UIGradient", Dropdown["1b"]);
+				Dropdown["1c"]["Rotation"] = 25;
+				Dropdown["1c"]["Color"] = ColorSequence.new{
+					ColorSequenceKeypoint.new(0.000, Color3.fromRGB(29, 33, 39)),
+					ColorSequenceKeypoint.new(0.500, Color3.fromRGB(35, 40, 48)),
+					ColorSequenceKeypoint.new(1.000, Color3.fromRGB(29, 33, 39))
+				};
+
+				-- UICorner
+				Dropdown["1d"] = Instance.new("UICorner", Dropdown["1b"]);
+				Dropdown["1d"]["CornerRadius"] = UDim.new(0.1, 0);
+
+				-- UIStroke
+				Dropdown["1e"] = Instance.new("UIStroke", Dropdown["1b"]);
+				Dropdown["1e"]["ApplyStrokeMode"] = Enum.ApplyStrokeMode.Border;
+				Dropdown["1e"]["Color"] = Color3.fromRGB(70, 80, 95);
+
+				-- Name label
+				Dropdown["1f"] = Instance.new("TextLabel", Dropdown["1b"]);
+				Dropdown["1f"]["TextWrapped"] = true;
+				Dropdown["1f"]["BorderSizePixel"] = 0;
+				Dropdown["1f"]["TextSize"] = 14;
+				Dropdown["1f"]["TextXAlignment"] = Enum.TextXAlignment.Left;
+				Dropdown["1f"]["TextYAlignment"] = Enum.TextYAlignment.Bottom;
+				Dropdown["1f"]["TextScaled"] = true;
+				Dropdown["1f"]["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+				Dropdown["1f"]["FontFace"] = Font.new([[rbxasset://fonts/families/SourceSansPro.json]], Enum.FontWeight.Regular, Enum.FontStyle.Italic);
+				Dropdown["1f"]["TextColor3"] = Color3.fromRGB(102, 119, 140);
+				Dropdown["1f"]["BackgroundTransparency"] = 1;
+				Dropdown["1f"]["Size"] = UDim2.new(0.42078, 0, 0.67237, 0);
+				Dropdown["1f"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+				Dropdown["1f"]["Text"] = options.title .. ": " .. Dropdown.Selected;
+				Dropdown["1f"]["Name"] = [[Name]];
+				Dropdown["1f"]["Position"] = UDim2.new(0.02491, 0, 0.11865, 0);
+				Dropdown["1f"]["ZIndex"] = 11;
+				Dropdown["1f"]["Active"] = false;
+
+				Dropdown["20"] = Instance.new("UITextSizeConstraint", Dropdown["1f"]);
+				Dropdown["20"]["MaxTextSize"] = 50;
+
+				-- Icon
+				Dropdown["2f"] = Instance.new("ImageLabel", Dropdown["1b"]);
+				Dropdown["2f"]["BorderSizePixel"] = 0;
+				Dropdown["2f"]["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+				Dropdown["2f"]["ImageColor3"] = Color3.fromRGB(97, 113, 132);
+				Dropdown["2f"]["AnchorPoint"] = Vector2.new(0.5, 0.5);
+				Dropdown["2f"]["Image"] = [[rbxassetid://93112416374362]];
+				Dropdown["2f"]["Size"] = UDim2.new(0.039, 0, 0.533, 0);
+				Dropdown["2f"]["BackgroundTransparency"] = 1;
+				Dropdown["2f"]["Name"] = [[Icon]];
+				Dropdown["2f"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+				Dropdown["2f"]["Position"] = UDim2.new(0.957, 0, 0.5, 0);
+				Dropdown["2f"]["ZIndex"] = 11;
+				Dropdown["2f"]["Active"] = false;
+
+				-- Options container
+				Dropdown["21"] = Instance.new("ScrollingFrame", Dropdown["1b"]);
+				Dropdown["21"]["BorderSizePixel"] = 0;
+				Dropdown["21"]["BackgroundColor3"] = Color3.fromRGB(20, 23, 27);
+				Dropdown["21"]["Size"] = UDim2.new(1, 0, 0, 0);
+				Dropdown["21"]["Position"] = UDim2.new(0, 0, 1, 2);
+				Dropdown["21"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+				Dropdown["21"]["Name"] = [[Options]];
+				Dropdown["21"]["ScrollBarThickness"] = 4;
+				Dropdown["21"]["ScrollBarImageColor3"] = Color3.fromRGB(97, 113, 132);
+				Dropdown["21"]["Visible"] = false;
+				Dropdown["21"]["ZIndex"] = 15;
+				Dropdown["21"]["CanvasSize"] = UDim2.new(0, 0, 0, 0);
+				Dropdown["21"]["Active"] = true;
+
+				-- Options background styling
+				local optionsCorner = Instance.new("UICorner", Dropdown["21"]);
+				optionsCorner["CornerRadius"] = UDim.new(0.04, 0);
+
+				local optionsStroke = Instance.new("UIStroke", Dropdown["21"]);
+				optionsStroke["ApplyStrokeMode"] = Enum.ApplyStrokeMode.Border;
+				optionsStroke["Color"] = Color3.fromRGB(70, 80, 95);
+
+				-- UIListLayout for options
+				Dropdown["26"] = Instance.new("UIListLayout", Dropdown["21"]);
+				Dropdown["26"]["HorizontalAlignment"] = Enum.HorizontalAlignment.Center;
+				Dropdown["26"]["Padding"] = UDim.new(0, 5);
+				Dropdown["26"]["SortOrder"] = Enum.SortOrder.LayoutOrder;
+
+				-- Padding for options
+				local optionsPadding = Instance.new("UIPadding", Dropdown["21"]);
+				optionsPadding["PaddingTop"] = UDim.new(0, 3);
+				optionsPadding["PaddingBottom"] = UDim.new(0, 3);
+				optionsPadding["PaddingLeft"] = UDim.new(0, 3);
+				optionsPadding["PaddingRight"] = UDim.new(0, 3);
+
+				-- Create option buttons
+				Dropdown.OptionButtons = {}
+				for i, option in ipairs(options.options) do
+					local optionButton = Instance.new("TextButton", Dropdown["21"]);
+					optionButton["TextWrapped"] = true;
+					optionButton["BorderSizePixel"] = 0;
+					optionButton["TextSize"] = 13;
+					optionButton["TextScaled"] = false;
+					optionButton["BackgroundColor3"] = option == Dropdown.Selected and Color3.fromRGB(25, 33, 47) or Color3.fromRGB(29, 33, 39);
+					optionButton["FontFace"] = Font.new([[rbxasset://fonts/families/SourceSansPro.json]], Enum.FontWeight.Regular, Enum.FontStyle.Italic);
+					optionButton["TextColor3"] = Color3.fromRGB(186, 218, 255);
+					optionButton["Size"] = UDim2.new(0.97, 0, 0, 22);
+					optionButton["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+					optionButton["Text"] = option;
+					optionButton["AutoButtonColor"] = false;
+					optionButton["ZIndex"] = 16;
+
+					local corner = Instance.new("UICorner", optionButton);
+					corner["CornerRadius"] = UDim.new(0.15, 0);
+
+					local stroke = Instance.new("UIStroke", optionButton);
+					stroke["ApplyStrokeMode"] = Enum.ApplyStrokeMode.Border;
+					stroke["Color"] = option == Dropdown.Selected and Color3.fromRGB(70, 80, 95) or Color3.fromRGB(44, 50, 59);
+
+					-- Hover effects
+					optionButton.MouseEnter:Connect(function()
+						if option ~= Dropdown.Selected then
+							Library:tween(optionButton, {BackgroundColor3 = Color3.fromRGB(38, 50, 71)})
+							Library:tween(stroke, {Color = Color3.fromRGB(70, 80, 95)})
+						end
+					end)
+
+					optionButton.MouseLeave:Connect(function()
+						if option ~= Dropdown.Selected then
+							Library:tween(optionButton, {BackgroundColor3 = Color3.fromRGB(29, 33, 39)})
+							Library:tween(stroke, {Color = Color3.fromRGB(44, 50, 59)})
+						end
+					end)
+
+					-- Click handler
+					optionButton.MouseButton1Click:Connect(function()
+						-- Deselect previous
+						if Dropdown.OptionButtons[Dropdown.Selected] then
+							Library:tween(Dropdown.OptionButtons[Dropdown.Selected].button, {BackgroundColor3 = Color3.fromRGB(29, 33, 39)})
+							Library:tween(Dropdown.OptionButtons[Dropdown.Selected].stroke, {Color = Color3.fromRGB(44, 50, 59)})
+						end
+
+						-- Select new
+						Dropdown.Selected = option
+						Library:tween(optionButton, {BackgroundColor3 = Color3.fromRGB(25, 33, 47)})
+						Library:tween(stroke, {Color = Color3.fromRGB(70, 80, 95)})
+						Dropdown["1f"].Text = options.title .. ": " .. Dropdown.Selected
+
+						-- Close dropdown
+						Dropdown:Toggle()
+
+						-- Callback
+						options.callback(option)
+					end)
+
+					Dropdown.OptionButtons[option] = {button = optionButton, stroke = stroke}
+				end
+
+				-- Update canvas size
+				Dropdown["26"]:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+					Dropdown["21"].CanvasSize = UDim2.new(0, 0, 0, Dropdown["26"].AbsoluteContentSize.Y + 6)
+				end)
+
+				-- Initial colors
+				local defaultBg = Color3.fromRGB(29, 33, 39)
+				local hoverBg = Color3.fromRGB(49, 56, 67)
+				local pressedBg = Color3.fromRGB(19, 22, 26)
+
+				-- Hover enter
+				Dropdown["1b"].MouseEnter:Connect(function()
+					Dropdown.Hover = true
+					Library:tween(Dropdown["1b"], {BackgroundColor3 = hoverBg})
+					Library:tween(Dropdown["1e"], {Color = Color3.fromRGB(97, 110, 131)})
+					Library:tween(Dropdown["1f"], {TextColor3 = Color3.fromRGB(97, 110, 131)})
+					Library:tween(Dropdown["2f"], {ImageColor3 = Color3.fromRGB(97, 110, 131)})
+				end)
+
+				-- Hover leave
+				Dropdown["1b"].MouseLeave:Connect(function()
+					Dropdown.Hover = false
+					if not Dropdown.MouseDown then
+						Library:tween(Dropdown["1b"], {BackgroundColor3 = defaultBg})
+						Library:tween(Dropdown["1e"], {Color = Color3.fromRGB(70, 80, 95)})
+						Library:tween(Dropdown["1f"], {TextColor3 = Color3.fromRGB(101, 118, 139)})
+						Library:tween(Dropdown["2f"], {ImageColor3 = Color3.fromRGB(97, 113, 132)})
+					end
+				end)
+
+				-- Mouse down (pressed)
+				UIS.InputBegan:Connect(function(input, gpe)
+					if gpe then return end
+					if input.UserInputType == Enum.UserInputType.MouseButton1 and Dropdown.Hover then
+						Dropdown.MouseDown = true
+						Library:tween(Dropdown["1b"], {BackgroundColor3 = pressedBg})
+						Library:tween(Dropdown["1e"], {Color = Color3.fromRGB(55, 65, 80)})
+						Library:tween(Dropdown["1f"], {TextColor3 = Color3.fromRGB(55, 65, 80)})
+						Library:tween(Dropdown["2f"], {ImageColor3 = Color3.fromRGB(55, 65, 80)})
+					end
+				end)
+
+				-- Mouse release (click)
+				UIS.InputEnded:Connect(function(input, gpe)
+					if gpe then return end
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+						Dropdown.MouseDown = false
+						if Dropdown.Hover then
+							Library:tween(Dropdown["1b"], {BackgroundColor3 = hoverBg})
+							Library:tween(Dropdown["1e"], {Color = Color3.fromRGB(97, 110, 131)})
+							Library:tween(Dropdown["1f"], {TextColor3 = Color3.fromRGB(97, 110, 131)})
+							Library:tween(Dropdown["2f"], {ImageColor3 = Color3.fromRGB(97, 110, 131)})
+						else
+							Library:tween(Dropdown["1b"], {BackgroundColor3 = defaultBg})
+							Library:tween(Dropdown["1e"], {Color = Color3.fromRGB(70, 80, 95)})
+							Library:tween(Dropdown["1f"], {TextColor3 = Color3.fromRGB(101, 118, 139)})
+							Library:tween(Dropdown["2f"], {ImageColor3 = Color3.fromRGB(97, 113, 132)})
+						end
+					end
+				end)
+
+				-- Click to toggle
+				Dropdown["1b"].MouseButton1Click:Connect(function()
+					Dropdown:Toggle()
+				end)
+			end
+
+			do
+				function Dropdown:Toggle()
+					Dropdown.Open = not Dropdown.Open
+
+					if Dropdown.Open then
+						-- Calculate height (max 5 items visible)
+						local optionCount = #options.options
+						local maxVisible = math.min(optionCount, 5)
+						local optionHeight = 22
+						local padding = 3
+						local totalHeight = (optionHeight * maxVisible) + (padding * (maxVisible + 1))
+
+						Dropdown["21"].Visible = true
+						Library:tween(Dropdown["21"], {Size = UDim2.new(1, 0, 0, totalHeight)})
+						Library:tween(Dropdown["2f"], {Rotation = 180})
+					else
+						Library:tween(Dropdown["21"], {Size = UDim2.new(1, 0, 0, 0)})
+						Library:tween(Dropdown["2f"], {Rotation = 0})
+						task.wait(0.2)
+						Dropdown["21"].Visible = false
+					end
+				end
+			end
+
+			function Dropdown:SetValue(value)
+				if Dropdown.OptionButtons[value] then
+					-- Deselect previous
+					if Dropdown.OptionButtons[Dropdown.Selected] then
+						Library:tween(Dropdown.OptionButtons[Dropdown.Selected].button, {BackgroundColor3 = Color3.fromRGB(29, 33, 39)})
+						Library:tween(Dropdown.OptionButtons[Dropdown.Selected].stroke, {Color = Color3.fromRGB(44, 50, 59)})
+					end
+
+					-- Select new
+					Dropdown.Selected = value
+					Library:tween(Dropdown.OptionButtons[value].button, {BackgroundColor3 = Color3.fromRGB(25, 33, 47)})
+					Library:tween(Dropdown.OptionButtons[value].stroke, {Color = Color3.fromRGB(70, 80, 95)})
+					Dropdown["1f"].Text = options.title .. ": " .. Dropdown.Selected
+
+					options.callback(value)
+				end
+			end
+
+			return Dropdown
 		end
 		
 		return Tab
