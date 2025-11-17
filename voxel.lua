@@ -94,7 +94,6 @@ function Library:Init(options)
 	end
 	
 	-- Draggable
-	-- Draggable
 	do
 		local dragging = false  -- Keep this
 		local dragInput
@@ -150,16 +149,22 @@ function Library:Init(options)
 	do
 		local ui_open = true
 		local main_frame = GUI["2"]
+		
 		local function set_visuals(transparency)
-			for _,v in ipairs(main_frame:GetDescendants()) do
+			for _, v in ipairs(main_frame:GetDescendants()) do
 				if v:IsA("TextLabel") or v:IsA("TextButton") then
 					Library:tween(v, {TextTransparency = transparency})
 				elseif v:IsA("ImageLabel") and v.Name ~= "Image" then
 					Library:tween(v, {ImageTransparency = transparency})
-				elseif v:IsA("Frame") then
-					Library:tween(v, {BackgroundTransparency = transparency})
+				elseif v:IsA("Frame") and v.BackgroundTransparency < 1 then
+					-- Only tween frames that are visible
+					local currentTrans = v.BackgroundTransparency
+					local targetTrans = transparency
+					Library:tween(v, {BackgroundTransparency = targetTrans})
 				elseif v:IsA("UIStroke") then
 					Library:tween(v, {Transparency = transparency})
+				elseif v:IsA("ScrollingFrame") then
+					Library:tween(v, {ScrollBarImageTransparency = transparency})
 				end
 			end
 		end
@@ -168,16 +173,19 @@ function Library:Init(options)
 			if gpe then return end
 			if input.KeyCode == Enum.KeyCode.Insert then
 				ui_open = not ui_open
+				
 				if ui_open then
+					-- Show frame first, then fade in
 					main_frame.Visible = true
-					-- fade visuals back in
+					task.wait(0.05)
 					set_visuals(0)
 				else
-					-- fade out visuals then hide
+					-- Fade out, then hide
 					set_visuals(1)
-					task.delay(0.22, function()
-						if main_frame then main_frame.Visible = false end
-					end)
+					task.wait(0.22)
+					if not ui_open then
+						main_frame.Visible = false
+					end
 				end
 			end
 		end)
