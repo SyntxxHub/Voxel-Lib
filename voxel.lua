@@ -147,99 +147,115 @@ function Library:Init(options)
 		end
 	-- Insert-key UI toggle
 	-- Insert-key UI toggle (fade in/out)
-	do
-		local ui_open = true
-		local main_frame = GUI["2"]
-		
-		-- Store original states for checkboxes
-		local originalStates = {}
-		
-		local function set_visuals(transparency)
-			for _, v in ipairs(main_frame:GetDescendants()) do
-				if v:IsA("TextLabel") or v:IsA("TextButton") then
-					Library:tween(v, {TextTransparency = transparency})
-				elseif v:IsA("ImageLabel") then
-					-- Handle checkmark images separately
-					if v.Name == "Image" then
-						-- Store/restore original transparency for checkmarks
-						if transparency == 1 then
-							originalStates[v] = v.ImageTransparency
-						end
-						Library:tween(v, {ImageTransparency = transparency == 0 and (originalStates[v] or v.ImageTransparency) or 1})
-					else
-						Library:tween(v, {ImageTransparency = transparency})
+do
+	local ui_open = true
+	local main_frame = GUI["2"]
+	
+	-- Store original states for checkboxes and sliders
+	local originalStates = {}
+	
+	local function set_visuals(transparency)
+		for _, v in ipairs(main_frame:GetDescendants()) do
+			if v:IsA("TextLabel") or v:IsA("TextButton") then
+				Library:tween(v, {TextTransparency = transparency})
+			elseif v:IsA("ImageLabel") then
+				-- Handle checkmark images separately
+				if v.Name == "Image" then
+					-- Store/restore original transparency for checkmarks
+					if transparency == 1 then
+						originalStates[v] = v.ImageTransparency
 					end
-				elseif v:IsA("Frame") then
-					-- Don't tween the separator line or checkbox fills
-					if v.Name == "Ignore" then
-						-- Keep separator line always visible
-						v.BackgroundTransparency = 0
-					elseif v.Name == "Fill" then
-						-- Store and restore checkbox fill states
-						if transparency == 1 then
-							originalStates[v] = {
-								bg = v.BackgroundTransparency,
-								color = v.BackgroundColor3
-							}
-						end
-						if transparency == 0 and originalStates[v] then
-							Library:tween(v, {
-								BackgroundTransparency = originalStates[v].bg,
-								BackgroundColor3 = originalStates[v].color
-							})
-						else
-							Library:tween(v, {BackgroundTransparency = transparency})
-						end
-					elseif v.BackgroundTransparency < 1 then
+					Library:tween(v, {ImageTransparency = transparency == 0 and (originalStates[v] or v.ImageTransparency) or 1})
+				else
+					Library:tween(v, {ImageTransparency = transparency})
+				end
+			elseif v:IsA("Frame") then
+				-- Don't tween the separator line, checkbox fills, or slider fills
+				if v.Name == "Ignore" then
+					-- Keep separator line always visible
+					v.BackgroundTransparency = 0
+				elseif v.Name == "Fill" then
+					-- Store and restore checkbox fill states
+					if transparency == 1 then
+						originalStates[v] = {
+							bg = v.BackgroundTransparency,
+							color = v.BackgroundColor3
+						}
+					end
+					if transparency == 0 and originalStates[v] then
+						Library:tween(v, {
+							BackgroundTransparency = originalStates[v].bg,
+							BackgroundColor3 = originalStates[v].color
+						})
+					else
 						Library:tween(v, {BackgroundTransparency = transparency})
 					end
-				elseif v:IsA("UIStroke") then
-					-- Store and restore stroke states
-					if v.Parent and v.Parent.Name == "Fill" then
-						if transparency == 1 then
-							originalStates[v] = {
-								trans = v.Transparency,
-								color = v.Color
-							}
-						end
-						if transparency == 0 and originalStates[v] then
-							Library:tween(v, {
-								Transparency = originalStates[v].trans,
-								Color = originalStates[v].color
-							})
-						else
-							Library:tween(v, {Transparency = transparency})
-						end
+				elseif v.Name == "FillDraggable" then
+					-- Store and restore slider fill states
+					if transparency == 1 then
+						originalStates[v] = {
+							bg = v.BackgroundTransparency,
+							color = v.BackgroundColor3
+						}
+					end
+					if transparency == 0 and originalStates[v] then
+						Library:tween(v, {
+							BackgroundTransparency = originalStates[v].bg,
+							BackgroundColor3 = originalStates[v].color
+						})
+					else
+						Library:tween(v, {BackgroundTransparency = transparency})
+					end
+				elseif v.BackgroundTransparency < 1 then
+					Library:tween(v, {BackgroundTransparency = transparency})
+				end
+			elseif v:IsA("UIStroke") then
+				-- Store and restore stroke states for both checkboxes and sliders
+				if v.Parent and (v.Parent.Name == "Fill" or v.Parent.Name == "FillDraggable") then
+					if transparency == 1 then
+						originalStates[v] = {
+							trans = v.Transparency,
+							color = v.Color
+						}
+					end
+					if transparency == 0 and originalStates[v] then
+						Library:tween(v, {
+							Transparency = originalStates[v].trans,
+							Color = originalStates[v].color
+						})
 					else
 						Library:tween(v, {Transparency = transparency})
 					end
-				elseif v:IsA("ScrollingFrame") then
-					Library:tween(v, {ScrollBarImageTransparency = transparency})
+				else
+					Library:tween(v, {Transparency = transparency})
+				end
+			elseif v:IsA("ScrollingFrame") then
+				Library:tween(v, {ScrollBarImageTransparency = transparency})
+			end
+		end
+	end
+
+	UIS.InputBegan:Connect(function(input, gpe)
+		if gpe then return end
+		if input.KeyCode == Enum.KeyCode.Insert then
+			ui_open = not ui_open
+			
+			if ui_open then
+				-- Show frame first, then fade in
+				main_frame.Visible = true
+				task.wait(0.05)
+				set_visuals(0)
+			else
+				-- Fade out, then hide
+				set_visuals(1)
+				task.wait(0.22)
+				if not ui_open then
+					main_frame.Visible = false
 				end
 			end
 		end
-
-		UIS.InputBegan:Connect(function(input, gpe)
-			if gpe then return end
-			if input.KeyCode == Enum.KeyCode.Insert then
-				ui_open = not ui_open
-				
-				if ui_open then
-					-- Show frame first, then fade in
-					main_frame.Visible = true
-					task.wait(0.05)
-					set_visuals(0)
-				else
-					-- Fade out, then hide
-					set_visuals(1)
-					task.wait(0.22)
-					if not ui_open then
-						main_frame.Visible = false
-					end
-				end
-			end
-		end)
-	end
+	end)
+end
 
 	end
 
