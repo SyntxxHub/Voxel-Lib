@@ -146,6 +146,43 @@ function Library:Init(options)
 		function GUI:StopDragging()
 			dragging = false
 		end
+	-- Insert-key UI toggle (fade in/out)
+	do
+		local ui_open = true
+		local main_frame = GUI["2"]
+		local function set_visuals(transparency)
+			for _,v in ipairs(main_frame:GetDescendants()) do
+				if v:IsA("TextLabel") or v:IsA("TextButton") then
+					Library:tween(v, {TextTransparency = transparency})
+				elseif v:IsA("ImageLabel") and v.Name ~= "Image" then
+					Library:tween(v, {ImageTransparency = transparency})
+				elseif v:IsA("Frame") then
+					Library:tween(v, {BackgroundTransparency = transparency})
+				elseif v:IsA("UIStroke") then
+					Library:tween(v, {Transparency = transparency})
+				end
+			end
+		end
+
+		UIS.InputBegan:Connect(function(input, gpe)
+			if gpe then return end
+			if input.KeyCode == Enum.KeyCode.Insert then
+				ui_open = not ui_open
+				if ui_open then
+					main_frame.Visible = true
+					-- fade visuals back in
+					set_visuals(0)
+				else
+					-- fade out visuals then hide
+					set_visuals(1)
+					task.delay(0.22, function()
+						if main_frame then main_frame.Visible = false end
+					end)
+				end
+			end
+		end)
+	end
+
 	end
 
 	-- Tabs
@@ -1377,7 +1414,173 @@ function Library:Init(options)
 			return Dropdown
 		end
 		
-		return Tab
+		
+		function Tab:Keybind(options)
+			options = Library:validate({
+				title = "Keybind",
+				default = Enum.KeyCode.One,
+				mode = "once", -- "once" or "toggle"
+				callback = function() end
+			}, options or {})
+
+			local Keybind = {
+				Listening = false,
+				Key = options.default or Enum.KeyCode.One,
+				State = false
+			}
+
+			-- Create UI (matches your style & placement inside Tab["1a"])
+			Keybind["kb_frame"] = Instance.new("Frame", Tab["1a"]);
+			Keybind["kb_frame"].BorderSizePixel = 0;
+			Keybind["kb_frame"].BackgroundColor3 = Color3.fromRGB(255,255,255);
+			Keybind["kb_frame"].ClipsDescendants = true;
+			Keybind["kb_frame"].Size = UDim2.new(0.95565, 0, 0.09684, 0);
+			Keybind["kb_frame"].Position = UDim2.new(0.02218, 0, 0.19404, 0);
+			Keybind["kb_frame"].BorderColor3 = Color3.fromRGB(0,0,0);
+			Keybind["kb_frame"].Name = "Keybind";
+
+			Keybind["kb_grad"] = Instance.new("UIGradient", Keybind["kb_frame"]);
+			Keybind["kb_grad"].Rotation = 25;
+			Keybind["kb_grad"].Color = ColorSequence.new{
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(29,33,39)),
+				ColorSequenceKeypoint.new(0.5, Color3.fromRGB(35,40,48)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(29,33,39))
+			}
+
+			Keybind["kb_corner"] = Instance.new("UICorner", Keybind["kb_frame"]);
+			Keybind["kb_corner"].CornerRadius = UDim.new(0.1, 0);
+
+			Keybind["kb_stroke"] = Instance.new("UIStroke", Keybind["kb_frame"]);
+			Keybind["kb_stroke"].ApplyStrokeMode = Enum.ApplyStrokeMode.Border;
+			Keybind["kb_stroke"].Color = Color3.fromRGB(70,80,95);
+
+			Keybind["kb_name"] = Instance.new("TextLabel", Keybind["kb_frame"]);
+			Keybind["kb_name"].TextWrapped = true;
+			Keybind["kb_name"].BorderSizePixel = 0;
+			Keybind["kb_name"].TextSize = 14;
+			Keybind["kb_name"].TextXAlignment = Enum.TextXAlignment.Left;
+			Keybind["kb_name"].TextYAlignment = Enum.TextYAlignment.Bottom;
+			Keybind["kb_name"].TextScaled = true;
+			Keybind["kb_name"].BackgroundColor3 = Color3.fromRGB(255,255,255);
+			Keybind["kb_name"].Font = Enum.Font.SourceSansItalic;
+			Keybind["kb_name"].TextColor3 = Color3.fromRGB(102,119,140);
+			Keybind["kb_name"].BackgroundTransparency = 1;
+			Keybind["kb_name"].Size = UDim2.new(0.42078, 0, 0.65996, 0);
+			Keybind["kb_name"].BorderColor3 = Color3.fromRGB(0,0,0);
+			Keybind["kb_name"].Text = options.title;
+			Keybind["kb_name"].Name = "Name";
+			Keybind["kb_name"].Position = UDim2.new(0.02491, 0, 0.11646, 0);
+
+			Keybind["kb_keyframe"] = Instance.new("Frame", Keybind["kb_frame"]);
+			Keybind["kb_keyframe"].BorderSizePixel = 0;
+			Keybind["kb_keyframe"].BackgroundColor3 = Color3.fromRGB(255,255,255);
+			Keybind["kb_keyframe"].Size = UDim2.new(0.08585, 0, 0.5435, 0);
+			Keybind["kb_keyframe"].Position = UDim2.new(0.89135, 0, 0.23, 0);
+			Keybind["kb_keyframe"].BorderColor3 = Color3.fromRGB(0,0,0);
+			Keybind["kb_keyframe"].Name = "Key";
+
+			Keybind["kb_keycorner"] = Instance.new("UICorner", Keybind["kb_keyframe"]);
+			Keybind["kb_keycorner"].CornerRadius = UDim.new(0.1, 0);
+
+			Keybind["kb_keygrad"] = Instance.new("UIGradient", Keybind["kb_keyframe"]);
+			Keybind["kb_keygrad"].Rotation = 25;
+			Keybind["kb_keygrad"].Color = ColorSequence.new{
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(29,33,39)),
+				ColorSequenceKeypoint.new(0.5, Color3.fromRGB(35,40,48)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(29,33,39))
+			}
+
+			Keybind["kb_keystroke"] = Instance.new("UIStroke", Keybind["kb_keyframe"]);
+			Keybind["kb_keystroke"].ApplyStrokeMode = Enum.ApplyStrokeMode.Border;
+			Keybind["kb_keystroke"].Color = Color3.fromRGB(70,80,95);
+
+			Keybind["kb_bind"] = Instance.new("TextButton", Keybind["kb_keyframe"]);
+			Keybind["kb_bind"].TextWrapped = true;
+			Keybind["kb_bind"].BorderSizePixel = 0;
+			Keybind["kb_bind"].TextColor3 = Color3.fromRGB(97,111,132);
+			Keybind["kb_bind"].TextStrokeColor3 = Color3.fromRGB(70,80,95);
+			Keybind["kb_bind"].TextSize = 14;
+			Keybind["kb_bind"].TextScaled = true;
+			Keybind["kb_bind"].BackgroundColor3 = Color3.fromRGB(255,255,255);
+			Keybind["kb_bind"].RichText = true;
+			Keybind["kb_bind"].Font = Enum.Font.SourceSansBold;
+			Keybind["kb_bind"].AnchorPoint = Vector2.new(0.5, 0.5);
+			Keybind["kb_bind"].Size = UDim2.new(1.26554, 0, 1, 0);
+			Keybind["kb_bind"].BackgroundTransparency = 1;
+			Keybind["kb_bind"].Name = "Bind";
+			Keybind["kb_bind"].BorderColor3 = Color3.fromRGB(0,0,0);
+			Keybind["kb_bind"].Text = Keybind.Key.Name;
+			Keybind["kb_bind"].Position = UDim2.new(0.47142, 0, 0.5, 0);
+
+			-- Clicking bind enters listening mode
+			Keybind["kb_bind"].MouseButton1Click:Connect(function()
+				if Keybind.Listening then
+					Keybind.Listening = false
+					Keybind["kb_bind"].Text = Keybind.Key.Name
+				else
+					Keybind.Listening = true
+					Keybind["kb_bind"].Text = "..."
+				end
+			end)
+
+			-- Detect new key selection
+			local conn_select
+			conn_select = UIS.InputBegan:Connect(function(input, gpe)
+				if gpe then return end
+				if Keybind.Listening and input.KeyCode and input.KeyCode ~= Enum.KeyCode.Unknown then
+					Keybind.Key = input.KeyCode
+					Keybind["kb_bind"].Text = Keybind.Key.Name
+					Keybind.Listening = false
+				end
+			end)
+
+			-- Execution
+			local conn_exec
+			conn_exec = UIS.InputBegan:Connect(function(input, gpe)
+				if gpe then return end
+				if input.KeyCode == Keybind.Key then
+					if options.mode == "toggle" then
+						Keybind.State = not Keybind.State
+						pcall(options.callback, Keybind.State)
+					else
+						pcall(options.callback)
+					end
+				end
+			end)
+
+			-- Provide API
+			function Keybind:SetKey(key)
+				if typeof(key) == "EnumItem" then
+					Keybind.Key = key
+					Keybind["kb_bind"].Text = key.Name
+				end
+			end
+
+			function Keybind:SetMode(m)
+				if m == "toggle" or m == "once" then
+					options.mode = m
+				end
+			end
+
+			function Keybind:SetCallback(fn)
+				if type(fn) == "function" then
+					options.callback = fn
+				end
+			end
+
+			function Keybind:GetState()
+				return Keybind.State
+			end
+
+			function Keybind:Destroy()
+				if conn_select then conn_select:Disconnect() end
+				if conn_exec then conn_exec:Disconnect() end
+				if Keybind["kb_frame"] then Keybind["kb_frame"]:Destroy() end
+			end
+
+			return Keybind
+		end
+return Tab
 	end
 	
 	return GUI
