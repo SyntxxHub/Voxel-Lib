@@ -145,7 +145,7 @@ function Library:Init(options)
 		function GUI:StopDragging()
 			dragging = false
 		end
-	-- Insert-key UI toggle (fade in/out)
+	-- Insert-key UI toggle
 	do
 		local ui_open = true
 		local main_frame = GUI["2"]
@@ -156,11 +156,16 @@ function Library:Init(options)
 					Library:tween(v, {TextTransparency = transparency})
 				elseif v:IsA("ImageLabel") and v.Name ~= "Image" then
 					Library:tween(v, {ImageTransparency = transparency})
-				elseif v:IsA("Frame") and v.BackgroundTransparency < 1 then
-					-- Only tween frames that are visible
-					local currentTrans = v.BackgroundTransparency
-					local targetTrans = transparency
-					Library:tween(v, {BackgroundTransparency = targetTrans})
+				elseif v:IsA("Frame") then
+					-- Don't tween frames that should stay fully visible (like separators)
+					if v.Name ~= "Ignore" and v.BackgroundTransparency < 1 then
+						local targetTrans = transparency
+						-- Keep some frames visible
+						if v.BackgroundTransparency > 0 and v.BackgroundTransparency < 1 then
+							targetTrans = v.BackgroundTransparency
+						end
+						Library:tween(v, {BackgroundTransparency = targetTrans})
+					end
 				elseif v:IsA("UIStroke") then
 					Library:tween(v, {Transparency = transparency})
 				elseif v:IsA("ScrollingFrame") then
